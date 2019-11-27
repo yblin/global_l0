@@ -13,7 +13,6 @@
 #include <queue>
 #include <unordered_map>
 
-#include "codelibrary/geometry/kernel/angle.h"
 #include "codelibrary/geometry/kernel/distance_2d.h"
 #include "codelibrary/geometry/kernel/distance_3d.h"
 #include "codelibrary/geometry/kernel/line_2d.h"
@@ -23,7 +22,6 @@
 #include "codelibrary/optimization/discrete/subset_selection/greedy_submodular.h"
 #include "codelibrary/point_cloud/k_nearest_neighbors.h"
 #include "codelibrary/statistics/kernel/median.h"
-#include "codelibrary/statistics/regression/least_median_squares_fitting.h"
 #include "codelibrary/util/set/disjoint_set.h"
 #include "codelibrary/util/tree/kd_tree.h"
 
@@ -47,15 +45,16 @@ public:
      */
     GlobalL0Extractor(int k_neighbors,
                       int min_support_points,
-                      int n_constraints)
+                      int n_constraints,
+                      double outlier_penalty)
         : k_neighbors_(k_neighbors),
           min_support_points_(min_support_points),
-          n_constraints_(n_constraints) {
+          n_constraints_(n_constraints),
+          outlier_penalty_(outlier_penalty) {
         assert(k_neighbors_ > 0);
         assert(min_support_points_ >= 3);
         assert(n_constraints_ > 0);
-
-        angle_threshold_ = std::cos(unit::angle::DegreeToRadian(22.5));
+        assert(outlier_penalty_ >= 0.0 && outlier_penalty_ <= 10.0);
     }
 
     /**
@@ -74,8 +73,7 @@ public:
                       const Array<Vector2D<T>>& normals,
                       Array<Segment2D<T>>* lines,
                       Array<int>* labels) const {
-        static_assert(std::is_floating_point<T>::value,
-                      "T must be a floating point.");
+        static_assert(std::is_floating_point<T>::value, "");
 
         assert(lines);
         assert(labels);
@@ -83,7 +81,6 @@ public:
         // Segment the points.
         Array<std::pair<Point2D<T>, Vector2D<T>>> models;
         Segment(kd_tree, normals, labels, &models);
-
         RefineLines(kd_tree.points(), *labels, models, lines);
     }
 
@@ -103,8 +100,7 @@ public:
                        const Array<Vector3D<T>>& normals,
                        Array<Plane3D<T>>* planes,
                        Array<int>* labels) const {
-        static_assert(std::is_floating_point<T>::value,
-                      "T must be a floating point.");
+        static_assert(std::is_floating_point<T>::value, "");
 
         assert(planes);
         assert(labels);
@@ -112,10 +108,8 @@ public:
         // Segment the points.
         Array<std::pair<Point3D<T>, Vector3D<T>>> models;
         Segment(kd_tree, normals, labels, &models);
-
         RefinePlanes(kd_tree.points(), *labels, models, planes);
     }
-
 
     void set_min_support_points(int min_support_points) {
         assert(min_support_points > 0);
@@ -177,6 +171,7 @@ private:
         assert(models);
 
         int n = kd_tree.size();
+        const Array<Point>& points = kd_tree.points();
         labels->assign(n, -1);
         if (n <= k_neighbors_ || n < min_support_points_) {
             return;
@@ -190,17 +185,21 @@ private:
             graph.AddEdgeProperty<int>("weights", 1);
         DisjointSet set(n + 1);
         Array<int> sizes(n, 1);
+        Array<double> distances(n, 0.0);
 
         Array<int> available_vertices(n);
         for (int i = 0; i < n; ++i) {
             available_vertices[i] = i;
         }
 
+        bool terminal = false;
         const double min_lambda = MinLambda(normals1, graph);
-        for (double lambda = min_lambda; ; lambda *= 2.0) {
+        for (double lambda = min_lambda; ; lambda *= 1.2) {
             bool finish = true;
             for (int i : available_vertices) {
                 if (i != set.Find(i)) continue;
+
+                double lambda_l = std::min(lambda, outlier_penalty_);
 
                 std::unordered_map<int, Edge*> hash;
                 for (Edge* e : graph.edges_from(i)) {
@@ -208,33 +207,42 @@ private:
                 }
 
                 bool is_outlier = true;
-
                 for (Edge* e : graph.edges_from(i)) {
                     int j = e->target();
                     if (set.Find(j) == n) continue;
 
                     if (sizes[i] < min_support_points_) finish = false;
 
-                    double c1 = static_cast<double>(sizes[i]) * sizes[j];
-                    double c2 = sizes[i] + sizes[j];
-                    double loss = Distance(normals1[i], normals1[j]) * c1 / c2;
-                    double improvement = lambda * weights[e] - loss;
+                    double c = sizes[i] + sizes[j];
+                    double dis = Distance(normals1[i], normals1[j]);
+                    double loss = (dis * sizes[i] * sizes[j]) / c;
+                    double improvement = std::min(lambda, outlier_penalty_) *
+                                         weights[e] - loss;
 
-                    if (!CheckNormal(normals1[i], normals1[j])) continue;
+                    if (normals1[i] != normals1[j] &&
+                        lambda > outlier_penalty_) {
+                        continue;
+                    }
                     is_outlier = false;
 
                     if (improvement > 0.0) {
                         set.Link(j, i);
-                        double c = sizes[i] + sizes[j];
                         double a = sizes[i] / c;
                         double b = sizes[j] / c;
-                        if (normals1[i] * normals1[j] > 0.0) {
-                            normals1[i] = a * normals1[i] + b * normals1[j];
-                        } else {
-                            normals1[i] = a * normals1[i] - b * normals1[j];
-                        }
-                        normals1[i] *= 1.0 / normals1[i].norm();
+                        if (normals1[i] != normals1[j]) {
+                            Vector v;
+                            if (normals1[i] * normals1[j] > 0.0) {
+                                v = a * normals1[i] + b * normals1[j];
+                            } else {
+                                v = a * normals1[i] - b * normals1[j];
+                            }
+                            v.Normalize();
 
+                            distances[i] += Distance(normals1[i], v) * sizes[i];
+                            distances[i] += Distance(normals1[j], v) * sizes[j];
+                            normals1[i] = v;
+                        }
+                        distances[i] += distances[j];
                         sizes[i] += sizes[j];
 
                         for (Edge* e1 : graph.edges_from(j)) {
@@ -262,6 +270,7 @@ private:
                     graph.EraseEdgesOfVertex(i);
                 }
             }
+            if (terminal) break;
 
             int n_available_vertices = 0;
             for (int i : available_vertices) {
@@ -271,31 +280,25 @@ private:
             }
             available_vertices.resize(n_available_vertices);
 
-            if (finish && n_available_vertices <= n_constraints_) break;
-
             // Find the representatives via greedy sub-modular.
             Array<int> subset;
             for (int i : available_vertices) {
-                if (sizes[i] < min_support_points_) continue;
-                subset.push_back(i);
+                if (sizes[i] >= min_support_points_) subset.push_back(i);
             }
-            if (subset.size() <= 1) continue;
+            if (subset.size() <= n_constraints_) {
+                if (finish) terminal = true;
+                continue;
+            }
 
-            const int m = subset.size();
+            int m = subset.size();
             Array<int> ns(m);
-            for (int i = 0; i < m; ++i) {
+            for (int i = 0; i < subset.size(); ++i) {
                 ns[i] = sizes[subset[i]];
             }
 
             Array<int> seq;
             IndexSort(ns.begin(), ns.end(), &seq);
             std::reverse(seq.begin(), seq.end());
-
-            Array<Array<int>> clusters(set.size());
-            for (int i = 0; i < n; ++i) {
-                clusters[set.Find(i)].push_back(i);
-            }
-
             RMatrix dis(m, m);
             for (int i = 0; i < m; ++i) {
                 for (int j = 0; j < m; ++j) {
@@ -306,7 +309,8 @@ private:
 
                     int a = subset[seq[i]];
                     int b = subset[seq[j]];
-                    dis(i, j) = Distance(normals1[a], normals1[b]) * sizes[a];
+                    dis(i, j) = Distance(normals1[a], normals1[b]) * sizes[a] +
+                                distances[a];
                 }
             }
 
@@ -329,8 +333,8 @@ private:
 
                 normals1[subset[seq[i]]] = normals1[subset[seq[index]]];
             }
-
-            if (finish && representatives.size() <= n_constraints_) break;
+            if (finish && representatives.size() <= n_constraints_)
+                terminal = true;
         }
 
         // Set the label array.
@@ -338,16 +342,15 @@ private:
         for (int i = 0; i < n; ++i) {
             int a = set.Find(i);
             if (a == n) continue;
-            if (set.Number(i) >= min_support_points_) {
-                (*labels)[i] = set.Find(i);
-                if ((*labels)[i] == i) available_vertices.push_back(i);
+            if (sizes[a] >= min_support_points_) {
+                (*labels)[i] = a;
+                if (a == i) available_vertices.push_back(i);
             }
         }
 
         // Relabeling, so that the value of labels[i] is in the range of
         // [0, n_planes). (Or -1 if the point is not assigned to a plane).
         Array<int> map(n);
-        const Array<Point> points = kd_tree.points();
         for (int i = 0; i < available_vertices.size(); ++i) {
             int p = available_vertices[i];
             map[p] = i;
@@ -357,15 +360,6 @@ private:
             if ((*labels)[i] == -1) continue;
             (*labels)[i] = map[(*labels)[i]];
         }
-    }
-
-    /**
-     * Check if two vectors is aligned.
-     */
-    template <typename Vector>
-    bool CheckNormal(const Vector& v1, const Vector& v2) const {
-        double angle = v1 * v2;
-        return (angle >= angle_threshold_ || angle <= -angle_threshold_);
     }
 
     /**
@@ -380,7 +374,6 @@ private:
 
         using Line = Line2D<T>;
         using Point = Point2D<T>;
-        using Vector = Vector2D<T>;
 
         Array<Array<int>> clusters(models.size());
         for (int i = 0; i < labels.size(); ++i) {
@@ -390,10 +383,9 @@ private:
 
         for (int i = 0; i < clusters.size(); ++i) {
             if (clusters[i].empty()) continue;
-            
+
             Line line(models[i].first, models[i].second);
-            Vector v(-line.direction().y, line.direction().x);
-            line = Line(line.point1(), v);
+            line = Line(models[i].first, line.normal());
 
             Array<double> distances(clusters[i].size());
             Array<int> seq;
@@ -410,8 +402,7 @@ private:
             IndexSort(distances.begin(), distances.end(), &seq);
 
             int mid = seq[seq.size() / 2];
-            line = Line(line.point1() + distances[mid] * models[i].second,
-                        line.direction());
+            line = Line(points[clusters[i][mid]], line.direction());
             lines->emplace_back(Project(p1, line), Project(p2, line));
         }
     }
@@ -445,16 +436,14 @@ private:
             IndexSort(distances.begin(), distances.end(), &seq);
 
             int mid = seq[seq.size() / 2];
-            planes->emplace_back(models[i].first +
-                                 distances[mid] * plane.normal(),
-                                 plane.normal());
+            planes->emplace_back(points[clusters[i][mid]], plane.normal());
         }
     }
 
     int k_neighbors_;
     int min_support_points_;
     int n_constraints_;
-    double angle_threshold_;
+    double outlier_penalty_;
 };
 
 } // namespace point_cloud

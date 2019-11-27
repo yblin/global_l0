@@ -138,17 +138,11 @@ int main() {
     int n_points = points.size();
     LOG(INFO) << "Import points: " << n_points;
 
+    LOG(INFO) << "Estimate normals...";
     KDTree<RPoint3D> kd_tree;
     kd_tree.SwapPoints(&points);
-
-    LOG(INFO) << "Estimate normals...";
-    Array<RPlane3D> local_planes;
-    point_cloud::EstimateLocalPlanes(kd_tree, 0.02, &local_planes);
-    Array<RVector3D> normals(n_points);
-    for (int i = 0; i < n_points; ++i) {
-        normals[i] = local_planes[i].normal();
-        normals[i].Normalize();
-    }
+    Array<RVector3D> normals;
+    geometry::PCAEstimateNormals(kd_tree, 30, &normals);
 
     LOG(INFO) << "Start plane extracting.";
     TimeCounter timer;
@@ -156,8 +150,7 @@ int main() {
 
     Array<RPlane3D> planes;
     Array<int> labels;
-    //point_cloud::RegionGrowing(kd_tree, 0.05, 15, 22.5, 50, &labels, &planes);
-    point_cloud::GlobalL0Extractor extractor(15, 50, 5);
+    point_cloud::GlobalL0Extractor extractor(15, 50, 3, 1.0);
     extractor.ExtractPlanes(kd_tree, normals, &planes, &labels);
 
     timer.Stop();
