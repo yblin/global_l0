@@ -14,6 +14,7 @@
 #include "codelibrary/base/units.h"
 #include "codelibrary/geometry/kernel/center_3d.h"
 #include "codelibrary/geometry/kernel/point_3d.h"
+#include "codelibrary/statistics/regression/principal_component_analysis_3d.h"
 #include "codelibrary/util/tree/kd_tree.h"
 
 namespace cl {
@@ -25,83 +26,17 @@ namespace geometry {
  * The output normal is normalize to the unit length. Its orientation is
  * randomly assigned.
  *
- * Note that, we only need to compute the least eigenvector of the covariance 
+ * Note that, we only need to compute the least eigenvector of the covariance
  * matrix.
  */
 template <typename T>
 void PCAEstimateNormal(const Array<Point3D<T>>& points,
                        const Array<T>& weights,
-                       Vector3D<T>* normal) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+                       RVector3D* normal) {
+    static_assert(std::is_floating_point<T>::value, "");
 
-    assert(!points.empty());
-    assert(points.size() == weights.size());
-    assert(normal);
-
-    Point3D<T> centroid = Centroid(points, weights);
-
-    T a00 = 0, a01 = 0, a02 = 0, a11 = 0, a12 = 0, a22 = 0;
-    int i = 0;
-    T sum = 0;
-    for (const Point3D<T>& p : points) {
-        T x = p.x - centroid.x;
-        T y = p.y - centroid.y;
-        T z = p.z - centroid.z;
-        T w = weights[i++];
-
-        a00 += w * x * x;
-        a01 += w * x * y;
-        a02 += w * x * z;
-        a11 += w * y * y;
-        a12 += w * y * z;
-        a22 += w * z * z;
-        sum += w;
-    }
-    if (sum == 0) {
-        *normal = Vector3D<T>(0, 0, 1);
-        return;
-    }
-
-    T t = 1 / sum;
-    a00 = a00 * t;
-    a01 = a01 * t;
-    a02 = a02 * t;
-    a11 = a11 * t;
-    a12 = a12 * t;
-    a22 = a22 * t;
-
-    // Computing the least eigenvalue of the covariance matrix.
-    T q = (a00 + a11 + a22) / 3;
-    T pq = (a00 - q) * (a00 - q) + (a11 - q) * (a11 - q) +
-            (a22 - q) * (a22 - q) + 2 * (a01 * a01 + a02 * a02 + a12 * a12);
-    pq = std::sqrt(pq / 6);
-    T mpq = std::pow(1 / pq, 3);
-    T det_b = mpq * ((a00 - q) * ((a11 - q) * (a22 - q) - a12 * a12) -
-               a01 * (a01 * (a22 - q) - a12 * a02) +
-               a02 * (a01 * a12 - (a11 - q) * a02));
-    T r = det_b / 2;
-    T phi = 0;
-    if (r <= -1)
-        phi = M_PI / 3;
-    else if (r >= 1)
-        phi = 0;
-    else
-        phi = std::acos(r) / 3;
-    T eig = q + 2 * pq * std::cos(phi + M_PI * (T(2) / T(3)));
-
-    // Computing the corresponding eigenvector.
-    normal->x = a01 * a12 - a02 * (a11 - eig);
-    normal->y = a01 * a02 - a12 * (a00 - eig);
-    normal->z = (a00 - eig) * (a11 - eig) - a01 * a01;
-
-    // Normalize.
-    double norm = normal->norm();
-    if (norm == 0.0) {
-        *normal = Vector3D<T>(0, 0, 1);
-    } else {
-        *normal *= static_cast<T>(1.0 / norm);
-    }
+    statistics::PrincipalComponentAnalysis3D pca(points, weights);
+    *normal = pca.eigenvector(0);
 }
 
 /**
@@ -111,9 +46,8 @@ void PCAEstimateNormal(const Array<Point3D<T>>& points,
  * randomly assigned.
  */
 template <typename T>
-void PCAEstimateNormal(const Array<Point3D<T>>& points, Vector3D<T>* normal) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+void PCAEstimateNormal(const Array<Point3D<T>>& points, RVector3D* normal) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     Array<T> weights(points.size(), 1);
     PCAEstimateNormal(points, weights, normal);
@@ -132,7 +66,7 @@ void PCAEstimateNormal(const Array<Point3D<T>>& points, Vector3D<T>* normal) {
  */
 template <typename T>
 void PCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree, int k,
-                        Array<Vector3D<T>>* normals) {
+                        Array<RVector3D>* normals) {
     assert(!kd_tree.empty());
     assert(k > 0);
     assert(normals);
@@ -156,9 +90,8 @@ void PCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree, int k,
  */
 template <typename Iterator, typename T>
 void PCAEstimateNormals(Iterator first, Iterator last, int k,
-                        Array<Vector3D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+                        Array<RVector3D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     using Point = typename std::iterator_traits<Iterator>::value_type;
     KDTree<Point> kd_tree(first, last);
@@ -177,11 +110,10 @@ void PCAEstimateNormals(Iterator first, Iterator last, int k,
  *   normals - the output normals.
  */
 template <typename T>
-void OrientationAwarePCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree, 
+void OrientationAwarePCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree,
                                         int k,
-                                        Array<Vector3D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+                                        Array<RVector3D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(!kd_tree.empty());
     assert(k > 0);
@@ -205,7 +137,7 @@ void OrientationAwarePCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree,
             }
         }
 
-        Vector3D<T> normal;
+        RVector3D normal;
         PCAEstimateNormal(neighbor_points, &normal);
         if (normal * (*normals)[i] < 0) {
             (*normals)[i] = -normal;
@@ -220,9 +152,8 @@ void OrientationAwarePCAEstimateNormals(const KDTree<Point3D<T>>& kd_tree,
  */
 template <typename Iterator, typename T>
 void OrientationAwarePCAEstimateNormals(Iterator first, Iterator last, int k,
-                                        Array<Vector3D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+                                        Array<RVector3D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     using Point = typename std::iterator_traits<Iterator>::value_type;
 

@@ -16,7 +16,7 @@ namespace cl {
 namespace matrix {
 
 /**
- * Compute all eigenvalues and, optionally, eigenvectors of a 2 * 2 real 
+ * Compute all eigenvalues and, optionally, eigenvectors of a 2 * 2 real
  * symmetric matrix.
  *
  * Reference:
@@ -27,15 +27,14 @@ namespace matrix {
  *  mat          - the input matrix using only the lower triangular part.
  *  eigenvalues  - the output eigenvalues will in ascending order.
  *  eigenvectors - the output eigenvectors are normalized so that ||z_i||_2 = 1.
- * 
+ *
  * Return:
  *   always return true.
  */
 template <typename T>
 bool SymmetricEigen2(const Matrix<T>& mat, Vector<T>* eigenvalues,
                      Matrix<T>* eigenvectors = nullptr) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be floating.");
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(mat.n_rows() == 2 && mat.n_columns() == 2);
     assert(eigenvalues);
@@ -53,33 +52,33 @@ bool SymmetricEigen2(const Matrix<T>& mat, Vector<T>* eigenvalues,
     T rt = std::sqrt(df * df + b * b * 4);
 
     if (sm > 0) {
-        w[1] = (sm + rt) / 2;
-        T t = 1 / w[1];
+        w[1] = T(0.5) * (sm + rt);
+        T t = T(1) / w[1];
         w[0] = (a * t) * c - (b * t) * b;
     } else if (sm < 0) {
-        w[0] = (sm - rt) / 2;
-        T t  = 1 / w[1];
+        w[0] = T(0.5) * (sm - rt);
+        T t  = T(1) / w[1];
         w[1] = (a * t) * c - (b * t) * b;
     } else {
         // This case needs to be treated separately to avoid div by 0.
-        w[1] =  rt / 2;
-        w[0] = -rt / 2;
+        w[1] = T(0.5)  * rt;
+        w[0] = T(-0.5) * rt;
     }
 
     if (eigenvectors) {
         // Compute eigenvectors.
         T cs = df > 0 ? df + rt : df - rt;
         T t = 0, sn = 0;
-        if (std::fabs(cs) > std::fabs(b) * 2) {
-            t = -b * 2 / cs;
-            sn = 1 / std::sqrt(t * t + 1);
+        if (std::fabs(cs) > T(2) * std::fabs(b)) {
+            t = -T(2) * b / cs;
+            sn = T(1) / std::sqrt(t * t + T(1));
             cs = t * sn;
         } else if (std::fabs(b) == 0) {
             cs = 1;
             sn = 0;
         } else {
-            t = -cs / b / 2;
-            cs = 1 / std::sqrt(t * t + 1);
+            t = -T(0.5) * cs / b;
+            cs = T(1) / std::sqrt(t * t + T(1));
             sn = t * cs;
         }
 
@@ -100,7 +99,7 @@ bool SymmetricEigen2(const Matrix<T>& mat, Vector<T>* eigenvalues,
 }
 
 /**
- * Computes all eigenvalues and, optionally, eigenvectors of a 3 * 3 real 
+ * Computes all eigenvalues and, optionally, eigenvectors of a 3 * 3 real
  * symmetric matrix.
  *
  * Reference:
@@ -111,15 +110,14 @@ bool SymmetricEigen2(const Matrix<T>& mat, Vector<T>* eigenvalues,
  *  mat          - the input matrix using only the lower triangular part.
  *  eigenvalues  - the output eigenvalues will in ascending order.
  *  eigenvectors - the output eigenvectors are normalized so that ||z_i||_2 = 1.
- * 
+ *
  * Return:
  *   always return true.
  */
 template <typename T>
 bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
                      Matrix<T>* eigenvectors = nullptr) {
-    static_assert(std::is_floating_point<T>::value,
-                  "T must be a floating point.");
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(a.n_rows() == 3 && a.n_columns() == 3);
     assert(eigenvalues);
@@ -138,19 +136,19 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
 
     T m  = a00 + a11 + a22;
     T c1 = a00 * a11 + a00 * a22 + a11 * a22 - (dd + ee + ff);
-    T c0 = dd * a22 + ee * a00 + ff * a11 - a00 * a11 * a22 - a02 * de * 2;
+    T c0 = dd * a22 + ee * a00 + ff * a11 - a00 * a11 * a22 - a02 * de * T(2);
 
-    T p = m * m - c1 * 3;
+    T p = m * m - c1 * T(3);
     T q = m * (p - c1 * T(1.5)) - c0 * T(13.5);
     T sqrt_p = std::sqrt(std::fabs(p));
 
     T phi = (c1 * c1 * (p - c1) * T(0.25) + c0 * (q + c0 * T(6.75))) * T(27);
-    phi = std::atan2(std::sqrt(std::fabs(phi)), q) / 3;
+    phi = std::atan2(std::sqrt(std::fabs(phi)), q) / T(3);
 
     T c = sqrt_p * std::cos(phi);
-    T s = sqrt_p * std::sin(phi) / std::sqrt(3);
+    T s = sqrt_p * std::sin(phi) / std::sqrt(T(3));
 
-    w[1]  = (m - c) / 3;
+    w[1]  = (m - c) / T(3);
     w[2]  = w[1] + s;
     w[0]  = w[1] + c;
     w[1] -= s;
@@ -193,7 +191,7 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
             v(0, 0) = 0;
             v(1, 0) = 1;
             v(2, 0) = 0;
-        } else if (norm < 4096 * epsilon * epsilon * error) {
+        } else if (norm < T(4096) * epsilon * epsilon * error) {
             // If angle between mat_t[0] and mat_t[1] is too small, don't use
             // cross product, but calculate v ~ (1, -A0/A1, 0).
             T t = a01 * a01;
@@ -205,13 +203,13 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
             if (a12 * a12 > t)
                 f = -a02 / a12;
 
-            T norm = 1 / std::sqrt(f * f + 1);
+            norm = 1 / std::sqrt(f * f + T(1));
             v(0, 0) = norm;
             v(1, 0) = f * norm;
             v(2, 0) = 0;
         } else {
             // This is the standard branch.
-            T t = std::sqrt(1 / norm);
+            T t = std::sqrt(T(1) / norm);
             v(0, 0) *= t;
             v(1, 0) *= t;
             v(2, 0) *= t;
@@ -219,7 +217,7 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
 
         // Prepare calculation of second eigenvector.
         T t = w[0] - w[1];
-        if (std::fabs(t) > 8 * epsilon * max_eigenvalue) {
+        if (std::fabs(t) > epsilon * max_eigenvalue * T(8)) {
             // For non-degenerate eigenvalue, calculate second eigenvector by
             // the formula
             //   v[1] = (A - w[1]).e1 x (A - w[1]).e2.
@@ -253,16 +251,16 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
                 }
                 if (a12 * a12 > t) f = -a02 / a12;
 
-                T norm = 1 / std::sqrt(f * f + 1);
+                norm = T(1) / std::sqrt(f * f + T(1));
                 v(0, 1) = norm;
                 v(1, 1) = f * norm;
                 v(2, 1) = 0;
             } else {
                 // This is the standard branch.
-                T t = 1 / std::sqrt(1 / norm);
-                v(0, 1) *= t;
-                v(1, 1) *= t;
-                v(2, 1) *= t;
+                norm = std::sqrt(T(1) / norm);
+                v(0, 1) *= norm;
+                v(1, 1) *= norm;
+                v(2, 1) *= norm;
             }
         } else {
             // For degenerate eigenvalue, calculate second eigenvector according
@@ -291,10 +289,10 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
 
                     T norm = v(0, 1) * v(0, 1) + v(1, 1) * v(1, 1) +
                              v(2, 1) * v(2, 1);
-                    if (norm > epsilon * epsilon * 65536 * n0) {
+                    if (norm > epsilon * epsilon * T(65536) * n0) {
                         // Accept cross product only if the angle between the
                         // two vectors was not too small.
-                        T t = std::sqrt(1 / norm);
+                        T t = std::sqrt(T(1) / norm);
                         v(0, 1) *= t;
                         v(1, 1) *= t;
                         v(2, 1) *= t;
@@ -310,8 +308,8 @@ bool SymmetricEigen3(const Matrix<T>& a, Vector<T>* eigenvalues,
                         // Find nonzero element of v[0] and swap it with the
                         // next one.
                         int k = (j + 1) % 3;
-                        T t = 1 / std::sqrt(v(j, 0) * v(j, 0) + 
-                                            v(k, 0) * v(k, 0));
+                        T t = T(1) / std::sqrt(v(j, 0) * v(j, 0) +
+                                               v(k, 0) * v(k, 0));
                         v(j, 1) =  v(k, 0) * t;
                         v(k, 1) = -v(j, 0) * t;
                         v((j + 2) % 3, 1) = 0;

@@ -137,7 +137,7 @@ private:
     // Covariance matrix of the input data.
     RMatrix covariance_matrix_;
 
-    // Eigenvalues of the covariance matrix, sorted in ascending order. 
+    // Eigenvalues of the covariance matrix, sorted in ascending order.
     RVector eigenvalues_;
 
     // Corresponding vectors.

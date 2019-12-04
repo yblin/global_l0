@@ -199,8 +199,6 @@ private:
             for (int i : available_vertices) {
                 if (i != set.Find(i)) continue;
 
-                double lambda_l = std::min(lambda, outlier_penalty_);
-
                 std::unordered_map<int, Edge*> hash;
                 for (Edge* e : graph.edges_from(i)) {
                     hash[e->target()] = e;

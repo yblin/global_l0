@@ -24,14 +24,14 @@ namespace geometry {
  * The output normal is normalize to the unit length. Its orientation is
  * randomly assigned.
  *
- * Note that, we only need to compute the least eigenvector of the covariance 
+ * Note that, we only need to compute the least eigenvector of the covariance
  * matrix.
  */
 template <typename T>
 void PCAEstimateNormal(const Array<Point2D<T>>& points,
                        const Array<T>& weights,
-                       Vector2D<T>* normal) {
-    static_assert(std::is_floating_point<T>::value);
+                       RVector2D* normal) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(!points.empty());
     assert(points.size() == weights.size());
@@ -39,13 +39,13 @@ void PCAEstimateNormal(const Array<Point2D<T>>& points,
 
     Point2D<T> centroid = Centroid(points, weights);
 
-    T a = 0, b = 0, c = 0;
+    double a = 0.0, b = 0.0, c = 0.0;
     int i = 0;
-    T sum = 0;
+    double sum = 0.0;
     for (const Point2D<T>& p : points) {
-        T x = p.x - centroid.x;
-        T y = p.y - centroid.y;
-        T w = weights[i++];
+        double x = p.x - centroid.x;
+        double y = p.y - centroid.y;
+        double w = weights[i++];
 
         a += w * x * x;
         b += w * x * y;
@@ -53,42 +53,42 @@ void PCAEstimateNormal(const Array<Point2D<T>>& points,
         sum += w;
     }
 
-    if (sum == 0) {
-        *normal = Vector2D<T>(0, 1);
+    if (sum == 0.0) {
+        *normal = RVector2D(0.0, 1.0);
         return;
     }
 
-    T t = T(1) / sum;
+    double t = 1.0 / sum;
     a *= t;
     b *= t;
     c *= t;
 
     // [ A  B ]  =  [ cs  -sn ] [ rt1   0  ] [  cs  sn ]
     // [ B  C ]     [ sn   cs ] [  0   rT ] [ -sn  cs ]
-    T df = a - c;
-    T rt = std::sqrt(df * df + b * b * 4);
-    T cs = df > 0 ? df + rt : df - rt;
-    T sn = 0;
-    if (std::fabs(cs) > std::fabs(b) * 2) {
-        t = -b * 2 / cs;
-        sn = 1 / std::sqrt(t * t + 1);
+    double df = a - c;
+    double rt = std::sqrt(df * df + b * b * 4.0);
+    double cs = df > 0.0 ? df + rt : df - rt;
+    double sn = 0.0;
+    if (std::fabs(cs) > std::fabs(b) * 2.0) {
+        t = -b * 2.0 / cs;
+        sn = 1.0 / std::sqrt(t * t + 1.0);
         cs = t * sn;
-    } else if (std::fabs(b) == 0) {
-        cs = 1;
-        sn = 0;
+    } else if (std::fabs(b) == 0.0) {
+        cs = 1.0;
+        sn = 0.0;
     } else {
-        t = - cs / b / 2;
-        cs = 1 / std::sqrt(t * t + 1);
+        t = - cs / b / 2.0;
+        cs = 1.0 / std::sqrt(t * t + 1.0);
         sn = t * cs;
     }
 
-    if (df > 0) {
+    if (df > 0.0) {
         t = cs;
         cs = -sn;
         sn = t;
     }
 
-    *normal = Vector2D<T>(-sn, cs);
+    *normal = RVector2D(-sn, cs);
 }
 
 /**
@@ -98,8 +98,8 @@ void PCAEstimateNormal(const Array<Point2D<T>>& points,
  * randomly assigned.
  */
 template <typename T>
-void PCAEstimateNormal(const Array<Point2D<T>>& points, Vector2D<T>* normal) {
-    static_assert(std::is_floating_point<T>::value);
+void PCAEstimateNormal(const Array<Point2D<T>>& points, RVector2D* normal) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     Array<T> weights(points.size(), 1);
     PCAEstimateNormal(points, weights, normal);
@@ -118,8 +118,8 @@ void PCAEstimateNormal(const Array<Point2D<T>>& points, Vector2D<T>* normal) {
  */
 template <typename T>
 void PCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree, int k,
-                        Array<Vector2D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value);
+                        Array<RVector2D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(!kd_tree.empty());
     assert(k > 0);
@@ -144,9 +144,7 @@ void PCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree, int k,
  */
 template <typename Iterator, typename T>
 void PCAEstimateNormals(Iterator first, Iterator last, int k,
-                        Array<Vector2D<T>>* normals) {
-    static_assert(std::is_floating_point<T2>::value);
-
+                        Array<RVector2D>* normals) {
     using Point = typename std::iterator_traits<Iterator>::value_type;
     KDTree<Point> kd_tree(first, last);
     PCAEstimateNormals(kd_tree, k, normals);
@@ -164,10 +162,10 @@ void PCAEstimateNormals(Iterator first, Iterator last, int k,
  *   normals - the output normals.
  */
 template <typename T>
-void OrientationAwarePCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree, 
+void OrientationAwarePCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree,
                                         int k,
-                                        Array<Vector2D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value);
+                                        Array<RVector2D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
 
     assert(!kd_tree.empty());
     assert(k > 0);
@@ -191,7 +189,7 @@ void OrientationAwarePCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree,
             }
         }
 
-        Vector2D<T> normal;
+        RVector2D normal;
         PCAEstimateNormal(neighbor_points, &normal);
         if (normal * (*normals)[i] < 0) {
             (*normals)[i] = -normal;
@@ -206,8 +204,8 @@ void OrientationAwarePCAEstimateNormals(const KDTree<Point2D<T>>& kd_tree,
  */
 template <typename Iterator, typename T>
 void OrientationAwarePCAEstimateNormals(Iterator first, Iterator last, int k,
-                                        Array<Vector2D<T>>* normals) {
-    static_assert(std::is_floating_point<T>::value);
+                                        Array<RVector2D>* normals) {
+    static_assert(std::is_floating_point<T>::value, "");
     using Point = typename std::iterator_traits<Iterator>::value_type;
 
     KDTree<Point> kd_tree(first, last);

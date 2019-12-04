@@ -121,6 +121,16 @@ public:
         return eigenvectors_;
     }
 
+    /**
+     * Return the i-th eigenvector.
+     */
+    const RVector3D eigenvector(int i) {
+        assert(i >= 0 && i < 3);
+
+        return RVector3D(eigenvectors_(0, i), eigenvectors_(1, i),
+                         eigenvectors_(2, i));
+    }
+
     const RPoint3D& centroid() const {
         return centroid_;
     }
@@ -168,7 +178,7 @@ public:
             RVector3D v = CrossProduct(v1, v2);
             *plane = RPlane3D(centroid_, v);
         } else {
-            RVector3D v(eigenvectors_(0, 0), eigenvectors_(1, 0), 
+            RVector3D v(eigenvectors_(0, 0), eigenvectors_(1, 0),
                         eigenvectors_(2, 0));
             *plane = RPlane3D(centroid_, v);
         }
@@ -182,7 +192,7 @@ private:
     // Covariance matrix of the input data.
     RMatrix covariance_matrix_;
 
-    // Eigenvalues of the covariance matrix, sorted in ascending order. 
+    // Eigenvalues of the covariance matrix, sorted in ascending order.
     RVector eigenvalues_;
 
     // Corresponding eigenvectors.
