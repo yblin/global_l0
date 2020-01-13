@@ -81,7 +81,7 @@ PEARL implementation: [Computer Vision at Waterloo - Code](https://vision.cs.uwa
 
 ## Sample results. 
 
-The first column is the orignal point cloud. The second column is the supervoxel segmentation by VCCS (found in vccs_supervoxel.h) . The third column is the VCCS method with kNN variation (found in vccs_knn_supervoxel.h). And the last column is the result obtained by our method.
+The first column is the orignal point cloud. The second column is Efficient RANSAC, the third is Pearl and the last is our method. The calculated normals have been mapped on the two-dimensinal space and visualized in the second row.
 
 <img src="https://github.com/yblin/Supervoxel-for-3D-point-clouds/blob/master/sample1.png" width="1000">
 
