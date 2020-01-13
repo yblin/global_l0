@@ -1,4 +1,4 @@
-# Supervoxel for 3D point clouds
+# Global L0 algorithm for regularity-constrained plane fitting
 
 ## Introduction
 We introduce a method based on energy minimization to reconstruct the planes consistent with our constraint model. The proposed algorithm is efficient, easily to understand, and simple to implement. The experimental results show that our algorithm successfully fits planes under high percentages of noise and outliers. This is superior to other state-of-the-art regularity-constrained plane fitting methods in terms of speed and robustness.
