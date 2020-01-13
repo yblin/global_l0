@@ -1,39 +1,21 @@
 # Supervoxel for 3D point clouds
 
 ## Introduction
-We introduce a method based on energy minimization to
-reconstruct the planes consistent with our constraint model. The proposed algorithm
-is efficient, easily to understand, and simple to implement. The experimental
-results show that our algorithm successfully fits planes under high percentages of
-noise and outliers. This is superior to other state-of-the-art regularity-constrained
-plane fitting methods in terms of speed and robustness.
+We introduce a method based on energy minimization to reconstruct the planes consistent with our constraint model. The proposed algorithm is efficient, easily to understand, and simple to implement. The experimental results show that our algorithm successfully fits planes under high percentages of noise and outliers. This is superior to other state-of-the-art regularity-constrained plane fitting methods in terms of speed and robustness.
 
-The details can be found in the following [ISPRS 2019 paper]()
+The details can be found in the following [ISPRS 2020 paper]()
 
 ## Citing our work
 If you find our works useful in your research, please consider citing:
 
-	Lin Y, Wang C, Zhai D, W Li, and J Li. Toward better boundary preserved supervoxel segmentation for 3D point clouds. Isprs Journal of Photogrammetry & Remote Sensing, vol. 143, pages 39-47, 2018.
+Comming soon
 
 ### BibTex
-
-	@article{Lin2018Supervoxel,
-		title = "Toward better boundary preserved supervoxel segmentation for 3D point clouds",
-		journal = "ISPRS Journal of Photogrammetry and Remote Sensing",
-		volume = "143",
-		pages = "39 - 47",
-		year = "2018",
-		note = "ISPRS Journal of Photogrammetry and Remote Sensing Theme Issue “Point Cloud Processing”",
-		issn = "0924-2716",
-		doi = "https://doi.org/10.1016/j.isprsjprs.2018.05.004",
-		url = "http://www.sciencedirect.com/science/article/pii/S0924271618301370",
-		author = "Lin, Yangbin and Wang, Cheng and Zhai, Dawei and Li, Wei and Li, Jonathan",
-		keywords = "Supervoxel segmentation, Point clouds, Subset selection, Over-segmentation"
-	}
+Comming soon
 
 ## Install & complie
 
-Please directly copy the code into your workspace and compile it with any complier that supports C++17. In addition, we also use the output functions provided by the fmt library, you can refer it by the link: [fmt: A modern formatting library](https://fmt.dev/)
+Please directly copy the code into your workspace and compile it with any complier that supports C++11. In addition, we also use the output functions provided by the fmt library, you can refer it by the link: [fmt: A modern formatting library](https://fmt.dev/)
 
 ## Sample usage:
 First, we construct a extractor, specifying the value of **k_neighbors**, **min_support_points**, **n_constraints** and **outlier_penalty** in turn. You can refer the detailed usage of the last two parameters in out paper.
