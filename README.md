@@ -83,7 +83,7 @@ PEARL implementation: [Computer Vision at Waterloo - Code](https://vision.cs.uwa
 
 The first column is the orignal point cloud. The second column is Efficient RANSAC, the third is Pearl and the last is our method. The calculated normals have been mapped on the two-dimensinal space and visualized in the second row.
 
-<img src="https://github.com/yblin/Supervoxel-for-3D-point-clouds/blob/master/sample1.png" width="1000">
+<img src="https://github.com/yblin/global_l0/blob/master/result.jpg" width="1000">
 
 ## Contact
 
