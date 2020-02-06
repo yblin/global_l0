@@ -12,15 +12,15 @@ If you find our works useful in your research, please consider citing:
 
 ### BibTex
 	@article{LIN2020208,
-			 title = "Fast regularity-constrained plane fitting",
-			 journal = "ISPRS Journal of Photogrammetry and Remote Sensing",
-			 volume = "161",
-			 pages = "208 - 217",
-		     year = "2020",
-			 issn = "0924-2716",
-			 doi = "https://doi.org/10.1016/j.isprsjprs.2020.01.009",
-			 url = "http://www.sciencedirect.com/science/article/pii/S0924271620300095",
-	 		 author = "Yangbin Lin and Jialian Li and Cheng Wang and Zhonggui Chen and Zongyue Wang and Jonathan Li",
+		title = "Fast regularity-constrained plane fitting",
+		journal = "ISPRS Journal of Photogrammetry and Remote Sensing",
+		volume = "161",
+		pages = "208 - 217",
+		year = "2020",
+		issn = "0924-2716",
+		doi = "https://doi.org/10.1016/j.isprsjprs.2020.01.009",
+		url = "http://www.sciencedirect.com/science/article/pii/S0924271620300095",
+		author = "Yangbin Lin and Jialian Li and Cheng Wang and Zhonggui Chen and Zongyue Wang and Jonathan Li",
 	}
 
 ## Install & complie
