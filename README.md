@@ -3,15 +3,25 @@
 ## Introduction
 We introduce a method based on energy minimization to reconstruct the planes consistent with our constraint model. The proposed algorithm is efficient, easily to understand, and simple to implement. The experimental results show that our algorithm successfully fits planes under high percentages of noise and outliers. This is superior to other state-of-the-art regularity-constrained plane fitting methods in terms of speed and robustness.
 
-The details can be found in the following [ISPRS 2020 paper]()
+The details can be found in the following [ISPRS 2020 paper](http://www.sciencedirect.com/science/article/pii/S0924271620300095)
 
 ## Citing our work
 If you find our works useful in your research, please consider citing:
 
-Comming soon
+	Lin Y, Li J, Wang C, Chen Z, Wang Z, and Li J. Fast regularity-constrained plane fitting. Isprs Journal of Photogrammetry & Remote Sensing, vol. 161, pages 208-217, 2020.
 
 ### BibTex
-Comming soon
+	@article{LIN2020208,
+			 title = "Fast regularity-constrained plane fitting",
+			 journal = "ISPRS Journal of Photogrammetry and Remote Sensing",
+			 volume = "161",
+			 pages = "208 - 217",
+		     year = "2020",
+			 issn = "0924-2716",
+			 doi = "https://doi.org/10.1016/j.isprsjprs.2020.01.009",
+			 url = "http://www.sciencedirect.com/science/article/pii/S0924271620300095",
+	 		 author = "Yangbin Lin and Jialian Li and Cheng Wang and Zhonggui Chen and Zongyue Wang and Jonathan Li",
+	}
 
 ## Install & complie
 
